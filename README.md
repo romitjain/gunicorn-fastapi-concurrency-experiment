@@ -33,7 +33,7 @@ This basic service has 2 endpoints and both endpoints have 2 paths:
 
 ### Setup 1
 
-- If we send requests one after the other to the same endpoint with `def` method(without `async`) my assumption is that requests will be served sequentially and the last request will have to wait for a long time.
+- If we send requests one after the other to the same endpoint with `def` method (without `async`) my assumption is that requests will be served sequentially and the last request will have to wait for a long time.
 
 ```bash
 # Will send 10 requests concurrently to an endpoint with def path which internally waits for 1 second
@@ -59,7 +59,7 @@ $ hey -n 10 -c 10 http://localhost:8888/e2/p2
 
 ![sc2](./assets/sc12.png)
 
-Again, the result is completely the opposite of what I expected.
+Again, the result is completely the opposite of what I expected. I later realized that until I `await` something inside a `async` function, the function never really gives the control back to the threadpool and hence acts lika a blocking call.
 
 ## Scenario 2: Sending requests one after the other to two different endpoints on the same app
 
@@ -154,4 +154,16 @@ Endpoint 2
 
 ![sc1](./assets/sc232.png)
 
-Endpoint 1 processes all requests parallely. Endpoint 2 processes requests sequentially. Depending on how you run it the time distribution might be a different.
+Endpoint 1 processes all requests parallely. Endpoint 2 processes requests sequentially. Depending on how you run it the time distribution might be a different. Requests to both endpoints are processed in separate threads.
+
+## Conclusion
+
+FastAPI calls `def` functions in separate threads. This means that _technically_ `def` functions in FastAPI works as concurrent functions.
+For `async def`, until and unless you `await` something, you dont really get any beenfit of `async` and it ends up becoming a blocking call. The difference is that inside `async def`, you can await coroutines.
+
+Read more about that [here](https://fastapi.tiangolo.com/async/#path-operation-functions).
+
+## References
+
+1. [Joel Sleppy blog](https://www.joelsleppy.com/blog/gunicorn-sync-workers/)
+2. [Fast API blog](https://fastapi.tiangolo.com/async/#path-operation-functions)
